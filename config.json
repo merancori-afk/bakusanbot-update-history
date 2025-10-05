@@ -3,6 +3,17 @@
   "764693314871099432": {
     "IMMUNE_ROLE": null,
     "COOLDOWN_BYPASS_ROLE": null,
-    "CONFIG_ROLE_ID": null
+    "CONFIG_ROLE_ID": null,
+    "roles": [
+      "1134487227141984327"
+    ],
+    "IMMUNE_ROLES": [
+      "1424383979607425138",
+      "1134487227141984327"
+    ],
+    "ADMIN_ROLES": [
+      "1424383979607425138"
+    ],
+    "UNLIMITED_ROLES": []
   }
 }
