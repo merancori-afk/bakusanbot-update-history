@@ -1,30 +1,42 @@
-require('dotenv').config();
+// 必要モジュール
 const fs = require('fs');
 const { Client, GatewayIntentBits } = require('discord.js');
+require('dotenv').config(); // ← 環境変数を使う前に必ずここで読み込む
 
+// Discordクライアント初期化
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
   ],
 });
 
+// ------------------------------
+// 設定ファイル類
+// ------------------------------
 const TEST_MODE = true; // 本番運用時は false に
 const configFile = './config.json';
 let config = fs.existsSync(configFile) ? JSON.parse(fs.readFileSync(configFile, 'utf8')) : {};
 const usageFile = './usage.json';
 let usageData = fs.existsSync(usageFile) ? JSON.parse(fs.readFileSync(usageFile, 'utf8')) : {};
 
-client.once('ready', () => {
+
+// ------------------------------
+// 起動時
+// ------------------------------
+client.once('clientready', () => {
   console.log(`✅ ログイン完了: ${client.user.tag}`);
 });
 
+// ------------------------------
+// スラッシュコマンド処理
+// ------------------------------
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  // ------------------------------
   // 爆散コマンド
-  // ------------------------------
   if (interaction.commandName === '爆散') {
     const guildId = interaction.guild.id;
     const guildConfig = config[guildId] || {};
@@ -32,7 +44,7 @@ client.on('interactionCreate', async (interaction) => {
     const now = Date.now();
     const cooldown = 6 * 60 * 60 * 1000; // 6時間
 
-    // クールダウン判定（無制限ロール）
+    // クールダウン判定
     const unlimitedRoles = guildConfig.UNLIMITED_ROLES || [];
     if (!TEST_MODE && !unlimitedRoles.some(r => interaction.member.roles.cache.has(r))) {
       const lastUsed = usageData[userId] || 0;
@@ -67,7 +79,6 @@ client.on('interactionCreate', async (interaction) => {
       for (const member of vc.members.values()) {
         if (member.id === client.user.id) continue;
 
-        // 爆発耐性ロール判定
         const immuneRoles = guildConfig.IMMUNE_ROLES || [];
         if (immuneRoles.some(r => member.roles.cache.has(r))) {
           failed.push(`${member.displayName}（爆発耐性を持っているため無傷）`);
@@ -82,7 +93,6 @@ client.on('interactionCreate', async (interaction) => {
         }
       }
 
-      // 報告書
       const timestamp = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
       let result = `==============================\n` +
                    `【作戦報告書】\n` +
@@ -93,7 +103,7 @@ client.on('interactionCreate', async (interaction) => {
       if (succeeded.length) {
         result += `対象の殺害に成功。\n` +
                   `殺害人数　：${succeeded.length}名\n` +
-                  `排除者一覧：${succeeded.join(', ')}\n`;
+                  `被害者一覧：${succeeded.join(', ')}\n`;
       } else {
         result += `殺害対象は存在しなかったよ。\n`;
       }
@@ -113,13 +123,14 @@ client.on('interactionCreate', async (interaction) => {
     }, 3000);
   }
 
-  // ------------------------------
-  // 設定コマンド（多ロール対応）
-  // ------------------------------
+  // 設定コマンド
   if (interaction.commandName === '設定') {
     const configCmd = require('./commands/設定.js');
     return configCmd.execute(interaction, config);
   }
 });
 
+// ------------------------------
+// ログイン
+// ------------------------------
 client.login(process.env.DISCORD_TOKEN);

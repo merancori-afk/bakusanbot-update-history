@@ -1,3 +1,4 @@
+// deploy-commands.js
 const { REST, Routes } = require('discord.js');
 const fs = require('fs');
 require('dotenv').config();
@@ -16,9 +17,15 @@ for (const folder of commandFolders) {
     const filePath = fs.statSync(commandsPath).isDirectory()
       ? `${commandsPath}/${file}`
       : `${foldersPath}/${file}`;
-    const command = require(filePath);
-    if ('data' in command) {
-      commands.push(command.data.toJSON());
+
+    const commandModule = require(filePath);
+    // 配列対応
+    const commandList = Array.isArray(commandModule) ? commandModule : [commandModule];
+
+    for (const cmd of commandList) {
+      if ('data' in cmd) {
+        commands.push(cmd.data.toJSON());
+      }
     }
   }
 }
@@ -27,15 +34,15 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
   try {
-    console.log(`Started refreshing ${commands.length} application (/) commands.`);
+    console.log(`📡 ${commands.length} 件のスラッシュコマンドを登録します…`);
 
     await rest.put(
       Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
       { body: commands },
     );
 
-    console.log(`Successfully reloaded application (/) commands.`);
+    console.log('✅ スラッシュコマンドの登録が完了しました！');
   } catch (error) {
-    console.error(error);
+    console.error('❌ 登録失敗:', error);
   }
 })();
